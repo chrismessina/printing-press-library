@@ -201,11 +201,15 @@ class ReleaseLedgerVerifierTest(unittest.TestCase):
     def test_allows_rewire_onto_stamp_literal_matching_ledger(self):
         self.seed_existing_cli()
         root = "library/social-and-messaging/x-twitter"
+        # HEAD~1 must be a non-stampable declaration. Rewriting the seeded
+        # literal in place would not touch `var version =`, so verify() would
+        # skip the CLI and this test would pass without the alignment exception.
+        self.write(f"{root}/internal/cli/root.go", 'package cli\n\nconst version = "0.1.0"\n')
+        run(["git", "add", "."], self.repo)
+        run(["git", "commit", "-m", "non-stampable const"], self.repo)
+
         self.write(f"{root}/README.md", "# X Twitter\n\nRewire only.\n")
-        self.write(
-            f"{root}/internal/cli/root.go",
-            'package cli\n\nvar version = "2026.6.1"\n\nfunc featureFlag() bool { return true }\n',
-        )
+        self.write(f"{root}/internal/cli/root.go", 'package cli\n\nvar version = "2026.6.1"\n')
         run(["git", "add", "."], self.repo)
         run(["git", "commit", "-m", "align stamp literal"], self.repo)
 
